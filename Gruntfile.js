@@ -30,19 +30,24 @@ module.exports = function(grunt) {
         images: '.tmp/images',
         fonts: '.tmp/fonts',
         compiled: '.tmp/compiled'
-      }
+      },
+      bower: 'bower_components'
     }
   };
 
+  var startsWith = function(str, start) {
+    return (str.slice(0, start.length) === start);
+  }
+
   var concatBanner = function(filepath, baseDir) {
-    var relativeName = filepath.slice(baseDir.length)
+    var relativeName = (startsWith(filepath, baseDir)) ? filepath.slice(baseDir.length) : filepath
     if (relativeName[0] == "/") {
       relativeName = relativeName.slice(1)
     }
     return "" +
-    "// -----------------------------------\n" +
-    "// " + relativeName + "\n" +
-    "// -----------------------------------\n\n";
+      "// -----------------------------------\n" +
+      "// " + relativeName + "\n" +
+      "// -----------------------------------\n\n";
   }
 
 
@@ -53,14 +58,16 @@ module.exports = function(grunt) {
       options: {
         process: function(src, filepath) {
           // if the file is in the compiled dir, then it is coffeescript, no need to wrap in IIFE
-          if (filepath.slice(0, appConfig.dirs.tmp.compiled.length) === appConfig.dirs.tmp.compiled) {
-            
+          if (startsWith(filepath, appConfig.dirs.tmp.compiled)) {            
             return concatBanner(filepath, appConfig.dirs.tmp.compiled) + src;
+          } else if (startsWith(filepath, appConfig.dirs.bower)) {
+            return concatBanner(filepath, appConfig.dirs.bower) + src;
+          } else {
+            return concatBanner(filepath, 'client') + 
+              "(function(){\n\n" +
+              src +
+              "\n\n})();\n";
           }
-          return concatBanner(filepath, 'client') + 
-          "(function(){\n\n" +
-          src +
-          "\n\n})();\n"
         }        
       }
     },
