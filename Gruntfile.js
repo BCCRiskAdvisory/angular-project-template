@@ -28,10 +28,23 @@ module.exports = function(grunt) {
         root: '.tmp',
         style: '.tmp/style',
         images: '.tmp/images',
-        fonts: '.tmp/fonts'
+        fonts: '.tmp/fonts',
+        compiled: '.tmp/compiled'
       }
     }
   };
+
+  var concatBanner = function(filepath, baseDir) {
+    var relativeName = filepath.slice(baseDir.length)
+    if (relativeName[0] == "/") {
+      relativeName = relativeName.slice(1)
+    }
+    return "" +
+    "// -----------------------------------\n" +
+    "// " + relativeName + "\n" +
+    "// -----------------------------------\n\n";
+  }
+
 
   grunt.initConfig({
     config: appConfig,
@@ -39,11 +52,29 @@ module.exports = function(grunt) {
     concat: {
       options: {
         process: function(src, filepath) {
-          return "// " + filepath + "\n\n" +
+          // if the file is in the compiled dir, then it is coffeescript, no need to wrap in IIFE
+          if (filepath.slice(0, appConfig.dirs.tmp.compiled.length) === appConfig.dirs.tmp.compiled) {
+            
+            return concatBanner(filepath, appConfig.dirs.tmp.compiled) + src;
+          }
+          return concatBanner(filepath, 'client') + 
           "(function(){\n\n" +
           src +
-          "})();\n\n"
+          "\n\n})();\n"
         }        
+      }
+    },
+
+    coffee: {
+      compile: {
+        expand: true,
+        cwd: '<%= config.dirs.src.app %>',
+        src: ['**/*.js.coffee'],
+        dest: '<%= config.dirs.tmp.compiled %>',
+        rename: function(dest, src) {
+          console.log(dest, src)
+          return dest + "/" + src.slice(0, -7)
+        }
       }
     },
 
@@ -54,8 +85,8 @@ module.exports = function(grunt) {
         tasks: ['wiredep']
       },
       js: {
-        files: ['<%= config.dirs.src.app %>/**/*.js'],
-        //tasks: ['newer:jshint:all'],
+        files: ['<%= config.dirs.src.app %>/**/*.js', '<%= config.dirs.src.app %>/**/*.js.coffee'],
+        tasks: ['newer:coffee:compile'],
         options: {
           livereload: '<%= connect.options.livereload %>'
         }
@@ -102,7 +133,8 @@ module.exports = function(grunt) {
                 connect.static('./bower_components')
               ),
               connect.static(appConfig.dirs.src.app),
-              connect.static(appConfig.dirs.src.content)
+              connect.static(appConfig.dirs.src.content),
+              connect.static(appConfig.dirs.tmp.compiled)
             ];
           }
         }
@@ -117,7 +149,8 @@ module.exports = function(grunt) {
                 '/bower_components',
                 connect.static('./bower_components')
               ),
-              connect.static(appConfig.dirs.src.app)
+              connect.static(appConfig.dirs.src.app),
+              connect.static(appConfig.dirs.tmp.compiled)
             ];
           }
         }
@@ -424,6 +457,7 @@ module.exports = function(grunt) {
     grunt.task.run([
       'clean:server',
       'wiredep',
+      'coffee:compile',
       'concurrent:server',
       'autoprefixer:server',
       'connect:livereload',
@@ -434,6 +468,7 @@ module.exports = function(grunt) {
   grunt.registerTask('test', [
     'clean:server',
     'wiredep',
+    'coffee:compile',
     'concurrent:test',
     'autoprefixer',
     'connect:test',
@@ -443,6 +478,7 @@ module.exports = function(grunt) {
   grunt.registerTask('build', [
     'clean:dist',
     'wiredep',
+    'coffee:compile',
     'useminPrepare',
     'concurrent:dist',
     'autoprefixer',

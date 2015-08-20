@@ -64,8 +64,9 @@
     <!-- endbower -->
     <!-- endbuild -->
 
-    <!-- build:js({.tmp,client/app}) app.js -->
-    <script src="app.js"></script>
+    <!-- build:js({.tmp,client/app,.tmp/compiled}) app.js -->
+    <script src="app.module.js"></script>
+    <script src="test.js"></script>
     <script src="layout/layout.module.js"></script>
     <script src="layout/routes.js"></script>
     <script src="layout/main.controller.js"></script>

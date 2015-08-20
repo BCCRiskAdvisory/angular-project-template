@@ -1,0 +1,1 @@
+angular.module('angularTemplate').value('coffeescript', 'awesome')
