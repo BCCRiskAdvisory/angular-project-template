@@ -11,6 +11,10 @@ module.exports = function(grunt) {
     cdnify: 'grunt-google-cdn'
   });
 
+  var _ = require('lodash')
+
+  grunt.loadTasks('tasks');
+
   // Application path configuration  
   var appConfig = {
     templateModuleName: 'angularTemplate',
@@ -29,18 +33,22 @@ module.exports = function(grunt) {
         style: '.tmp/style',
         images: '.tmp/images',
         fonts: '.tmp/fonts',
-        compiled: '.tmp/compiled'
+        compiled: '.tmp/compiled',
+        sass: '.tmp/sass_cache'
       },
       bower: 'bower_components'
     }
   };
 
-  var startsWith = function(str, start) {
-    return (str.slice(0, start.length) === start);
-  }
+  var sassDirGlobs = [
+    appConfig.dirs.src.style + '/**/*.{scss,sass,css}',
+    appConfig.dirs.src.app + '/**/*.{scss,sass,css}',
+    '!' + appConfig.dirs.src.style + '/**/_*.{scss,sass}',
+    '!' + appConfig.dirs.src.app + '/**/_*.{scss,sass}'
+  ]
 
   var concatBanner = function(filepath, baseDir) {
-    var relativeName = (startsWith(filepath, baseDir)) ? filepath.slice(baseDir.length) : filepath
+    var relativeName = (_.startsWith(filepath, baseDir)) ? filepath.slice(baseDir.length) : filepath
     if (relativeName[0] == "/") {
       relativeName = relativeName.slice(1)
     }
@@ -58,9 +66,9 @@ module.exports = function(grunt) {
       options: {
         process: function(src, filepath) {
           // if the file is in the compiled dir, then it is coffeescript, no need to wrap in IIFE
-          if (startsWith(filepath, appConfig.dirs.tmp.compiled)) {            
+          if (_.startsWith(filepath, appConfig.dirs.tmp.compiled)) {            
             return concatBanner(filepath, appConfig.dirs.tmp.compiled) + src;
-          } else if (startsWith(filepath, appConfig.dirs.bower)) {
+          } else if (_.startsWith(filepath, appConfig.dirs.bower)) {
             return concatBanner(filepath, appConfig.dirs.bower) + src;
           } else {
             return concatBanner(filepath, 'client') + 
@@ -92,20 +100,24 @@ module.exports = function(grunt) {
         tasks: ['wiredep']
       },
       js: {
-        files: ['<%= config.dirs.src.app %>/**/*.js', '<%= config.dirs.src.app %>/**/*.js.coffee'],
-        tasks: ['newer:coffee:compile'],
-        options: {
-          livereload: '<%= connect.options.livereload %>'
-        }
+        files: ['<%= config.dirs.src.app %>/**/*.{js,coffee}'],
+        tasks: ['newer:coffee:compile', 'livewire:js']//,
+        // options: {
+        //   livereload: '<%= connect.options.livereload %>'
+        // }
+      },
+      css: {
+        files: sassDirGlobs,
+        tasks: ['newer:sass:compile', 'livewire:css']
       },
       jsTest: {
         files: ['<%= config.dirs.src.app %>/**/*.spec.js'],
         tasks: ['newer:jshint:test', 'karma']
       },
-      compass: {
-        files: ['<%= config.dirs.src.style %>/{,*/}*.{scss,sass}'],
-        tasks: ['compass:server', 'autoprefixer:server']
-      },
+      // compass: {
+      //   files: ['<%= config.dirs.src.style %>/{,*/}*.{scss,sass}'],
+      //   tasks: ['compass:server', 'autoprefixer:server']
+      // },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -115,7 +127,6 @@ module.exports = function(grunt) {
         },
         files: [
           '<%= config.dirs.src.content %>/{,*/}*.html',
-          '<%= config.dirs.tmp.style %>/{,*/}*.css',
           '<%= config.dirs.src.images %>/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -231,6 +242,45 @@ module.exports = function(grunt) {
       }
     },
 
+    livewire: {
+      css: {
+        src: sassDirGlobs,
+        dest: '<%= config.dirs.src.content %>/index.html',
+        options: {
+          template: ':css',
+          rename: function(origFilename) {
+            console.log("renaming: " + origFilename);
+            var ext = ".scss";
+            if (_.endsWith(origFilename, ext)) {
+              return origFilename.slice(0, -ext.length) + ".css";
+            } else {
+              return origFilename;
+            }
+          },
+          ignorePath: new RegExp('^(' + appConfig.dirs.src.app + "|" + appConfig.dirs.src.style + ')/')
+        }
+      },
+      js: {
+        src: [
+          '<%= config.dirs.src.app %>/**/*.module.{js,js.coffee}', 
+          '<%= config.dirs.src.app %>/**/*.{js,js.coffee}',          
+          '!<%= config.dirs.src.app %>/**/*.spec.{js,js.coffee}'
+        ],
+        dest: '<%= config.dirs.src.content %>/index.html',
+        options: {          
+          ignorePath: new RegExp('^' + appConfig.dirs.src.app + '/'),
+          rename: function(origFilename) {
+            var ext = ".js.coffee";
+            if (_.endsWith(origFilename, ext)) {
+              return origFilename.slice(0, -ext.length) + ".js";
+            } else {
+              return origFilename;
+            }
+          }         
+        }
+      }
+    },
+
     // Automatically inject Bower components into the app
     wiredep: {
       app: {
@@ -259,41 +309,70 @@ module.exports = function(grunt) {
       }
     },
 
-    // Compiles Sass to CSS and generates necessary files if requested
-    compass: {
+    sass: {
       options: {
-        sassDir: '<%= config.dirs.src.style %>',
-        cssDir: '<%= config.dirs.tmp.style %>',
-        generatedImagesDir: '<%= config.dirs.tmp.images %>/generated',
-        imagesDir: '<%= config.dirs.src.images %>',
-        javascriptsDir: '<%= config.dirs.src.app %>',
-        fontsDir: '<%= config.dirs.src.fonts %>',
-        importPath: './bower_components',
-        httpImagesPath: '/images',
-        httpGeneratedImagesPath: '/images/generated',
-        httpFontsPath: '/fonts',
-        relativeAssets: false,
-        assetCacheBuster: false,
-        raw: 'Sass::Script::Number.precision = 10\n'
+        loadPath: ['bower_components', '<%= config.dirs.src.style %>', '<%= config.dirs.src.app %>'],
+        cacheLocation: '<%= config.dirs.tmp.sass %>'
       },
-      dist: {
-        options: {
-          generatedImagesDir: '<%= config.dirs.dist %>/images/generated'
-        }
-      },
-      server: {
-        options: {
-          sourcemap: true
-        }
+      compile: {
+        files: [{
+          expand: true,
+          src: sassDirGlobs,
+          dest: '<%= config.dirs.tmp.compiled %>',
+          ext: '.css',
+          rename: function(dest, src) {
+            var altered = src;
+            _.each([appConfig.dirs.src.app, appConfig.dirs.src.style], function(dirName) {
+              if (_.startsWith(src, dirName)) {
+                altered = src.slice(dirName.length);
+                return;
+              }
+            });
+            return dest + "/" + altered;            
+          }
+        }]
       }
     },
+
+    // Compiles Sass to CSS and generates necessary files if requested
+    // compass: {
+    //   options: {
+    //     //sassDir: '.',
+    //     specify: [
+    //       '<%= config.dirs.src.style %>/**/*.{scss,sass}',
+    //       '<%= config.dirs.src.app %>/**/*.{scss,sass}'
+    //     ],
+    //     cssDir: '<%= config.dirs.tmp.style %>',
+    //     generatedImagesDir: '<%= config.dirs.tmp.images %>/generated',
+    //     imagesDir: '<%= config.dirs.src.images %>',
+    //     javascriptsDir: '<%= config.dirs.src.app %>',
+    //     fontsDir: '<%= config.dirs.src.fonts %>',
+    //     importPath: './bower_components',
+    //     httpImagesPath: '/images',
+    //     httpGeneratedImagesPath: '/images/generated',
+    //     httpFontsPath: '/fonts',
+    //     relativeAssets: false,
+    //     assetCacheBuster: false,
+    //     raw: 'Sass::Script::Number.precision = 10\n'
+    //   },
+    //   dist: {
+    //     options: {
+    //       generatedImagesDir: '<%= config.dirs.dist %>/images/generated'
+    //     }
+    //   },
+    //   server: {
+    //     options: {
+    //       sourcemap: true
+    //     }
+    //   }
+    // },
 
     // Renames files for browser caching purposes
     filerev: {
       dist: {
         src: [
-          '<%= config.dirs.dist %>/scripts/{,*/}*.js',
-          '<%= config.dirs.dist %>/styles/{,*/}*.css',
+          '<%= config.dirs.dist %>/*.js',
+          '<%= config.dirs.dist %>/*.css',
           '<%= config.dirs.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
           '<%= config.dirs.dist %>/styles/fonts/*'
         ]
@@ -440,7 +519,6 @@ module.exports = function(grunt) {
         'compass'
       ],
       dist: [
-        'compass:dist',
         'imagemin',
         'svgmin'
       ]
@@ -485,6 +563,9 @@ module.exports = function(grunt) {
   grunt.registerTask('build', [
     'clean:dist',
     'wiredep',
+    'livewire:js',
+    'livewire:css',
+    'sass:compile',
     'coffee:compile',
     'useminPrepare',
     'concurrent:dist',
