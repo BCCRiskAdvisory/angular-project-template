@@ -389,7 +389,7 @@ module.exports = function(grunt) {
         flow: {
           html: {
             steps: {
-              js: ['concat', 'uglifyjs'],
+              js: ['concat', 'uglify'],
               css: ['cssmin']
             },
             post: {}
@@ -401,7 +401,7 @@ module.exports = function(grunt) {
     // Performs rewrites based on filerev and the useminPrepare configuration
     usemin: {
       html: ['<%= config.dirs.dist %>/{,*/}*.html'],
-      css: ['<%= config.dirs.dist %>/styles/{,*/}*.css'],
+      css: ['<%= config.dirs.dist %>/*.css'],
       js: ['<%= config.dirs.dist %>/*.js'],
       options: {
         assetsDirs: [

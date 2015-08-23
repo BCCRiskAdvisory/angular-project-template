@@ -13,7 +13,7 @@ module.exports = function(grunt) {
     var templateParamRE = /\{\{ ?([^\}]*) ?\}\}/g;
     var defaultTemplates = {
       js: '<script src="{{filePath}}"></script>',
-      css: '<link rel="stylesheet" href="{{filePath}}"></script>'
+      css: '<link rel="stylesheet" href="{{filePath}}" />'
     }
 
     var options = _.merge({
@@ -87,7 +87,8 @@ function wire(filename, templates, beginRE, endRE, preserveIndentation, encoding
     firstPos += beginIndices[0].length
   }
 
-  var lastPos = orig.search(endRE)
+  var lastPos = orig.slice(firstPos).search(endRE) + firstPos;  
+
   if (lastPos < 0) {
     grunt.log.error("Couldn't find livewire source end directive: " + endRE);
     return false;

@@ -6,14 +6,15 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
-    <!-- build:css(.) style/vendor.css -->
+    <!-- build:css(.) vendor.css -->
     <!-- bower:css -->
     <link rel="stylesheet" href="bower_components/pure/pure.css" />
     <!-- endbower -->
     <!-- endbuild -->
-    <!-- build:css(.tmp) style/main.css -->
+    <!-- build:css({.tmp/compiled,client/content/style,client/app}) app.css -->
     <!-- livewire:css -->
-    <link rel="stylesheet" href="style/main.css">
+    <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="contact/contact.css" />
     <!-- endlivewire -->
     <!-- endbuild -->
   </head>
@@ -66,7 +67,7 @@
     <!-- endbower -->
     <!-- endbuild -->
 
-    <!-- build:js({.tmp,client/app,.tmp/compiled}) app.js -->
+    <!-- build:js({client/app,.tmp/compiled}) app.js -->
     <!-- livewire:js -->
     <script src="about/about.module.js"></script>
     <script src="app.module.js"></script>
