@@ -11,7 +11,7 @@ module.exports = function(grunt) {
     cdnify: 'grunt-google-cdn'
   });
 
-  var _ = require('lodash')
+  var _ = require('lodash');
 
   grunt.loadTasks('tasks');
 
@@ -513,7 +513,7 @@ module.exports = function(grunt) {
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
-        'compass:server'
+        'sass:compile'
       ],
       test: [
         'compass'
@@ -537,6 +537,17 @@ module.exports = function(grunt) {
   grunt.registerTask('serve', 'Compile then start a connect web server', function (target) {
     if (target === 'dist') {
       return grunt.task.run(['build', 'connect:dist:keepalive']);
+    }
+
+    if (target === 'nowatch') {
+      return grunt.task.run([
+        'clean:server',
+        'wiredep',
+        'coffee:compile',
+        'concurrent:server',
+        'autoprefixer:server',
+        'connect:livereload:keepalive'
+      ])
     }
 
     grunt.task.run([
