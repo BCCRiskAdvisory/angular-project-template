@@ -2,9 +2,10 @@ var _ = require('lodash'),
     fs = require('fs'),
     util = require('util');
 
+var grunt;
 
-
-module.exports = function(grunt) {
+module.exports = function(g) {
+  grunt = g;
   grunt.registerMultiTask('livewire', function() {
 
     var _this = this;
