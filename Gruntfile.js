@@ -516,7 +516,7 @@ module.exports = function(grunt) {
         'sass:compile'
       ],
       test: [
-        'compass'
+        'sass:compile'
       ],
       dist: [
         'imagemin',
